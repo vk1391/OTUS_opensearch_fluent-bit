@@ -1,0 +1,78 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+home = ENV['HOME']
+
+Vagrant.configure(2) do |config|
+  config.vm.define "master1" do |main|
+    main.vm.network "private_network", adapter: 2, :device => "eth1", auto_config: false, virtualbox__intnet: "internal-net" # Internal network
+    main.vm.network "private_network", adapter: 3, :device => "eth2", ip: '192.168.56.205', netmask: "255.255.255.0" # Management
+    main.vm.hostname = "master1"
+    main.vm.box = "centos/7"
+    main.vm.box_version = "2004.01"
+    main.vm.provider :virtualbox do |virtualbox|
+      virtualbox.name = "master1"
+      virtualbox.customize ["modifyvm", :id, "--memory", "3072"]
+      virtualbox.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+  end
+  config.vm.define "ingest1" do |main|
+    main.vm.network "private_network", adapter: 2, :device => "eth1", auto_config: false, virtualbox__intnet: "internal-net" # Internal network
+    main.vm.network "private_network", adapter: 3, :device => "eth2", ip: '192.168.56.206', netmask: "255.255.255.0" # Management
+    main.vm.hostname = "ingest1"
+    main.vm.box = "centos/7"
+    main.vm.box_version = "2004.01"
+    main.vm.provider :virtualbox do |virtualbox|
+      virtualbox.name = "ingest1"
+      virtualbox.customize ["modifyvm", :id, "--memory", "3072"]
+      virtualbox.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+  end
+  config.vm.define "ingest2" do |main|
+    main.vm.network "private_network", adapter: 2, :device => "eth1", auto_config: false, virtualbox__intnet: "internal-net" # Internal network
+    main.vm.network "private_network", adapter: 3, :device => "eth2", ip: '192.168.56.207', netmask: "255.255.255.0" # Management
+    main.vm.hostname = "ingest2"
+    main.vm.box = "centos/7"
+    main.vm.box_version = "2004.01"
+    main.vm.provider :virtualbox do |virtualbox|
+      virtualbox.name = "ingest2"
+      virtualbox.customize ["modifyvm", :id, "--memory", "3072"]
+      virtualbox.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+  end
+  config.vm.define "dashboard" do |main|
+    main.vm.network "private_network", adapter: 2, :device => "eth1", auto_config: false, virtualbox__intnet: "internal-net" # Internal network
+    main.vm.network "private_network", adapter: 3, :device => "eth2", ip: '192.168.56.208', netmask: "255.255.255.0" # Management
+    main.vm.hostname = "dashboard"
+    main.vm.box = "centos/7"
+    main.vm.box_version = "2004.01"
+    main.vm.provider :virtualbox do |virtualbox|
+      virtualbox.name = "dashboard"
+      virtualbox.customize ["modifyvm", :id, "--memory", "1024"]
+      virtualbox.customize ["modifyvm", :id, "--cpus", "2"]
+    end
+  end
+  config.vm.define "host1" do |main|
+    main.vm.network "private_network", adapter: 2, :device => "eth1", auto_config: false, virtualbox__intnet: "internal-net" # Internal network
+    main.vm.network "private_network", adapter: 3, :device => "eth2", ip: '192.168.56.209', netmask: "255.255.255.0" # Management
+    main.vm.hostname = "host1"
+    main.vm.box = "centos/7"
+    main.vm.box_version = "2004.01"
+    main.vm.provider :virtualbox do |virtualbox|
+      virtualbox.name = "host1"
+      virtualbox.customize ["modifyvm", :id, "--memory", "1024"]
+      virtualbox.customize ["modifyvm", :id, "--cpus", "1"]
+    end
+  end 
+  config.vm.provision "shell", run: "always", inline: <<-SHELL
+    mkdir -p ~root/.ssh
+    cp ~vagrant/.ssh/auth* ~root/.ssh
+  SHELL
+
+  #config.vm.provision "ansible" do |ansible|
+  #  ansible.compatibility_mode = "2.0"
+  #  ansible.playbook = "main.yml"
+  #  ansible.verbose = "false"
+  #  ansible.become = "true"
+  #end
+end
