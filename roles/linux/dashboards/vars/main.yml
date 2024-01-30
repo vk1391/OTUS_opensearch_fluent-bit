@@ -1,0 +1,6 @@
+---
+# vars file for opensearch
+java: "{{ es_java | default('java-1.8.0-openjdk.x86_64') }}"
+admin_password: "Password2024"
+logstash_password: "Password2024"
+kibanaserver_password: "Password2024"

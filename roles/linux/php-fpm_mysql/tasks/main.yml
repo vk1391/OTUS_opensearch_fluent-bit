@@ -1,0 +1,187 @@
+- name: update
+  yum: update_cache=yes   
+- name: repo nginx
+  copy:
+    content: |
+      [nginx]
+      name=nginx repo
+      baseurl=https://nginx.org/packages/mainline/centos/7/\$basearch/
+      gpgcheck=1
+      enabled=1
+      gpgkey=https://nginx.org/keys/nginx_signing.key
+    dest: /etc/yum.repos.d/yandex.repo
+    mode: 0644
+
+- name: Install components for building
+  yum:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - nginx
+      - php
+      - php-fpm
+      - php-mysql
+      - php-mysqli
+      - mariadb-server
+
+- name: Copy nginx.conf
+  copy:
+    src: nginx_php.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+- name: Copy www php-fpm
+  copy:
+    src: www.conf
+    dest: /etc/php-fpm.d/www.conf
+    owner: root
+    group: root
+    mode: 0644    
+- name: Copy db_connect script
+  copy:
+    src: con_db.php
+    dest: /home/vagrant/con_db.php
+    owner: root
+    group: root
+    mode: 733
+
+- name: Copy index.php
+  copy:
+    content: |
+      <?php phpinfo(); ?>
+    dest: /usr/share/nginx/html/index.php
+    owner: nginx
+    group: nginx
+    mode: 0644  
+
+- name: Enable and start nginx
+  systemd:
+    name: nginx
+    state: started
+    enabled: true
+- name: Enable and start php-fpm
+  systemd:
+    name: php-fpm
+    state: started
+    enabled: true
+- name: run con_db  
+  command: 'sudo php /home/vagrant/con_db.php'
+- name: Enable and start php-fpm
+  systemd:
+    name: php-fpm
+    state: restarted
+- name: start firewall
+  systemd:
+    name: firewalld
+    state: started
+- name: open http port
+  command: "{{ item }}"
+  with_items: 
+    - 'sudo firewall-cmd --permanent --add-port=80/tcp'
+    - 'sudo firewall-cmd --reload'
+- name: install fluent-bit
+  shell: curl https://raw.githubusercontent.com/fluent/fluent-bit/master/install.sh | sh
+- name: configure fluent-bit
+  copy:
+    content: |
+      [SERVICE]
+      # Flush
+      # =====
+      # set an interval of seconds before to flush records to a destination
+      flush        1
+
+      # Daemon
+      # ======
+      # instruct Fluent Bit to run in foreground or background mode.
+      daemon       off
+
+      # Log_Level
+      # =========
+      # Set the verbosity level of the service, values can be:
+      #
+      # - error
+      # - warning
+      # - info
+      # - debug
+      # - trace
+      #
+      # by default 'info' is set, that means it includes 'error' and 'warning'.
+      log_level    info
+
+      # Parsers File
+      # ============
+      # specify an optional 'Parsers' configuration file
+      parsers_file parsers.conf
+
+      # Plugins File
+      # ============
+      # specify an optional 'Plugins' configuration file to load external plugins.
+      plugins_file plugins.conf
+
+      # HTTP Server
+      # ===========
+      # Enable/Disable the built-in HTTP Server for metrics
+      http_server  Off
+      http_listen  0.0.0.0
+      http_port    2020
+
+      # Storage
+      # =======
+      # Fluent Bit can use memory and filesystem buffering based mechanisms
+      #
+      # - https://docs.fluentbit.io/manual/administration/buffering-and-storage
+      #
+      # storage metrics
+      # ---------------
+      # publish storage pipeline metrics in '/api/v1/storage'. The metrics are
+      # exported only if the 'http_server' option is enabled.
+      #
+      storage.metrics on
+
+      # storage.path
+      # ------------
+      # absolute file system path to store filesystem data buffers (chunks).
+      #
+      # storage.path /tmp/storage
+
+      # storage.sync
+      # ------------
+      # configure the synchronization mode used to store the data into the
+      # filesystem. It can take the values normal or full.
+      #
+      # storage.sync normal
+
+      # storage.checksum
+      # ----------------
+      # enable the data integrity check when writing and reading data from the
+      # filesystem. The storage layer uses the CRC32 algorithm.
+      #
+      # storage.checksum off
+
+      # storage.backlog.mem_limit
+      # -------------------------
+      # if storage.path is set, Fluent Bit will look for data chunks that were
+      # not delivered and are still in the storage layer, these are called
+      # backlog data. This option configure a hint of maximum value of memory
+      # to use when processing these records.
+      #
+      # storage.backlog.mem_limit 5M
+
+      [INPUT]
+      Name          tail
+      path /var/log/nginx/access.log
+      
+      [OUTPUT]
+      Name          forward
+      Match         *
+      Host          192.168.56.205
+      Port          24224
+    dest: /etc/fluent-bit/fluent-bit.conf
+- name: grant access nginx log
+  command: chmod 755 -R /var/log/nginx && chown nginx:nginx -R /var/log/nginx
+- name: start fluent-bit
+  systemd:
+    name: fluent-bit
+    state: restarted

@@ -1,0 +1,34 @@
+---
+
+- name: Opensearch installation & configuration
+  hosts: os-cluster
+  gather_facts: true
+  become: true
+  roles:
+    - { role: linux/opensearch }
+
+- name: Opensearch dashboards installation & configuration
+  hosts: dashboards
+  gather_facts: true
+  become: true
+  roles:
+    - { role: linux/dashboards }
+- name: install app in host1
+  hosts: host1
+  gather_facts: true
+  become: true
+  tags:
+    - php
+  roles:
+    - { role: linux/php-fpm_mysql }
+    - { role: linux/fluent-bit }
+- name: install fluent bit on master
+  hosts: os1 
+  ather_facts: true
+  become: true
+  tags:
+    - fluent
+  roles:
+    - { role: linux/fluent-bit }
+  
+

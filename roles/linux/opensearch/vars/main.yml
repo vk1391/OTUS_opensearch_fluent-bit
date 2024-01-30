@@ -1,0 +1,5 @@
+---
+# vars file for opensearch
+admin_password: "Password2024"
+logstash_password: "Password2024"
+kibanaserver_password: "Password2024"
